@@ -162,44 +162,73 @@ const AlarmModule = (() => {
   let timers = {};
   let audioCtx = null;
 
+  // Resume AudioContext on first user gesture (fixes autoplay block)
+  function unlockAudio() {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  document.addEventListener('click', unlockAudio, { once: false });
+  document.addEventListener('touchstart', unlockAudio, { once: false });
+
   function getAudioCtx() {
     if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch(e) {}
     }
     return audioCtx;
   }
 
-  function playSound(type) {
+  function playSound() {
     const ctx = getAudioCtx();
     if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
     const settings = Storage.getSettings();
     if (settings.sound === 'none') return;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
+    const sound = settings.sound || 'bell';
 
-    if (type === 'bell' || settings.sound === 'bell') {
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc.start(); osc.stop(ctx.currentTime + 0.5);
-    } else if (settings.sound === 'chime') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1047, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-      osc.start(); osc.stop(ctx.currentTime + 0.8);
-    } else {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-      osc.start(); osc.stop(ctx.currentTime + 0.15);
+    // Play 3 beeps in sequence for better audibility
+    for (let i = 0; i < 3; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = ctx.currentTime + i * 0.4;
+
+      if (sound === 'bell') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, t);
+        osc.frequency.exponentialRampToValueAtTime(440, t + 0.3);
+        gain.gain.setValueAtTime(0.4, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.start(t); osc.stop(t + 0.3);
+      } else if (sound === 'chime') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1047, t);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.start(t); osc.stop(t + 0.35);
+      } else {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(520, t);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.start(t); osc.stop(t + 0.15);
+      }
     }
 
-    if (settings.vibrate && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    if (settings.vibrate && navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+  }
+
+  function sendNotification(title, body) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') new Notification(title, { body, icon: '' });
+      });
+    }
   }
 
   function scheduleAlarm(event) {
@@ -208,21 +237,22 @@ const AlarmModule = (() => {
     if (timers[event.id]) clearTimeout(timers[event.id]);
 
     const now = new Date();
-    const [h, m] = event.startTime.split(':').map(Number);
     const target = new Date(event.date + 'T' + event.startTime + ':00');
     const triggerTime = new Date(target.getTime() - (event.reminderBefore || 0) * 60000);
     const ms = triggerTime - now;
 
-    if (ms > 0 && ms < 86400000) { // only within 24h
-      timers[event.id] = setTimeout(() => {
-        fireAlarm(event);
-      }, ms);
+    if (ms > 0 && ms < 86400000) {
+      timers[event.id] = setTimeout(() => fireAlarm(event), ms);
     }
   }
 
   function fireAlarm(event) {
-    playSound('bell');
-    ToastModule.show(`Alarm: ${event.title}`, `Alarm: ${event.startTime}`, 'alarm', 8000);
+    playSound();
+    const msg = event.reminderBefore > 0
+      ? `In ${event.reminderBefore} min: ${event.startTime}`
+      : `Now: ${event.startTime}`;
+    ToastModule.show(`Alarm: ${event.title}`, msg, 'alarm', 10000);
+    sendNotification(`Alarm: ${event.title}`, msg);
   }
 
   function scheduleAll() {
@@ -242,10 +272,15 @@ const AlarmModule = (() => {
     timers = {};
   }
 
-  return { scheduleAll, scheduleAlarm, cancelAlarm, cancelAll, playSound };
-})();
+  // Request notification permission proactively on first interaction
+  function requestPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
 
-// ============================================================
+  return { scheduleAll, scheduleAlarm, cancelAlarm, cancelAll, playSound, requestPermission };
+})();
 // TOAST MODULE
 // ============================================================
 const ToastModule = (() => {
@@ -413,7 +448,7 @@ const TodayView = (() => {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     document.getElementById('greeting-time-label').textContent = greeting;
     const greetingMain = document.getElementById('greeting-main');
-    if (greetingMain) greetingMain.textContent = ${greeting}, here's your day;
+    if (greetingMain) greetingMain.textContent = `${greeting}, here's your day`;
 
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -707,7 +742,7 @@ const DetailModal = (() => {
 
     let bodyHtml = `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon">Date</div>
+        <div class="event-detail-row-icon"></div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Date</div>
           <div class="event-detail-row-value">${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</div>
@@ -715,7 +750,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.startTime) bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon">Time</div>
+        <div class="event-detail-row-icon"></div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Time</div>
           <div class="event-detail-row-value">${formatTimeRange(event.startTime, event.endTime)}</div>
@@ -723,7 +758,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.description) bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon">Info</div>
+        <div class="event-detail-row-icon"></div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Description</div>
           <div class="event-detail-row-value">${escHtml(event.description)}</div>
@@ -731,7 +766,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.repeat !== 'none') bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon">Rep.</div>
+        <div class="event-detail-row-icon"></div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Repeat</div>
           <div class="event-detail-row-value">${event.repeat.charAt(0).toUpperCase() + event.repeat.slice(1)}</div>
@@ -739,7 +774,7 @@ const DetailModal = (() => {
       </div>`;
     bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon">Alrm</div>
+        <div class="event-detail-row-icon"></div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Alarm</div>
           <div class="event-detail-row-value">${event.alarm ? `Enabled  ${event.reminderBefore > 0 ? event.reminderBefore + ' min before' : 'At event time'}` : 'Disabled'}</div>
@@ -930,6 +965,8 @@ const App = (() => {
     // Seed sample data if empty
     if (!EventModel.getAll().length) seedSampleData();
 
+    ThemeModule.init();
+    ClockModule.init();
     CalendarUI.init();
     Navigation.init();
     EventFormModal.init();
@@ -938,6 +975,8 @@ const App = (() => {
     SearchModule.init();
     ConfirmDialog.init();
     TodayView.render();
+    AlarmModule.requestPermission();
+    WeatherModule.load();
 
     // Birthday reminder check
     checkBirthdays();
@@ -1003,6 +1042,142 @@ const App = (() => {
 })();
 
 // ============================================================
+
+// ================================================================
+// THEME MODULE
+// ================================================================
+const ThemeModule = (() => {
+  const KEY = 'planify_theme';
+
+  function init() {
+    const saved = localStorage.getItem(KEY) || 'dark';
+    apply(saved);
+    document.getElementById('btn-theme-toggle').addEventListener('click', toggle);
+  }
+
+  function apply(theme) {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.getElementById('theme-icon-moon').style.display = 'none';
+      document.getElementById('theme-icon-sun').style.display = 'block';
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      document.getElementById('theme-icon-moon').style.display = 'block';
+      document.getElementById('theme-icon-sun').style.display = 'none';
+    }
+    localStorage.setItem(KEY, theme);
+  }
+
+  function toggle() {
+    const current = localStorage.getItem('planify_theme') || 'dark';
+    apply(current === 'dark' ? 'light' : 'dark');
+  }
+
+  return { init };
+})();
+// ================================================================
+// WEATHER MODULE  (Open-Meteo — no API key required)
+// ================================================================
+
+// ================================================================
+// WEATHER MODULE
+// ================================================================
+const WeatherModule = (() => {
+  const WMO = {
+    0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+    45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
+    61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',
+    80:'Rain showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',99:'Thunderstorm'
+  };
+  const ICONS = {
+    0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
+    51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',
+    71:'🌨️',73:'❄️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',99:'⛈️'
+  };
+
+  function load() {
+    document.getElementById('weather-loading').style.display = 'block';
+    document.getElementById('weather-content').style.display = 'none';
+    document.getElementById('weather-error').style.display = 'none';
+
+    if (!navigator.geolocation) { showError(); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+      () => fetchWeather(40.7128, -74.0060) // fallback: New York
+    , { timeout: 8000 });
+  }
+
+  function fetchWeather(lat, lon) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=mph&temperature_unit=celsius&timezone=auto`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const c = data.current;
+        const code = c.weather_code;
+        document.getElementById('weather-temp').textContent = Math.round(c.temperature_2m) + '°C';
+        document.getElementById('weather-desc').textContent = WMO[code] || 'Unknown';
+        document.getElementById('weather-icon').textContent = ICONS[code] || '🌡️';
+        document.getElementById('weather-humidity').textContent = c.relative_humidity_2m + '%';
+        document.getElementById('weather-wind').textContent = Math.round(c.wind_speed_10m) + ' mph';
+        document.getElementById('weather-feels').textContent = Math.round(c.apparent_temperature) + '°C';
+        // Reverse geocode city name
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+          .then(r => r.json())
+          .then(geo => {
+            const city = geo.address.city || geo.address.town || geo.address.village || geo.address.county || '';
+            const country = geo.address.country_code ? geo.address.country_code.toUpperCase() : '';
+            document.getElementById('weather-loc').textContent = city ? `${city}, ${country}` : `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+          }).catch(() => {
+            document.getElementById('weather-loc').textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+          });
+        document.getElementById('weather-loading').style.display = 'none';
+        document.getElementById('weather-content').style.display = 'flex';
+      })
+      .catch(() => showError());
+  }
+
+  function showError() {
+    document.getElementById('weather-loading').style.display = 'none';
+    document.getElementById('weather-error').style.display = 'flex';
+  }
+
+  return { load };
+})();
+
+// ================================================================
+// CLOCK MODULE
+// ================================================================
+const ClockModule = (() => {
+  let _timer = null;
+
+  function init() {
+    tick();
+    _timer = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    const el = document.getElementById('live-clock');
+    if (!el) return;
+    const now = new Date();
+    const settings = Storage.getSettings();
+    const fmt = settings.timeformat || '12';
+    let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    const pad = n => String(n).padStart(2, '0');
+    let timeStr;
+    if (fmt === '24') {
+      timeStr = `${pad(h)}:${pad(m)}<span class="clock-sec">:${pad(s)}</span>`;
+    } else {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      timeStr = `${pad(h)}:${pad(m)}<span class="clock-sec">:${pad(s)}</span> <span class="clock-ampm">${ampm}</span>`;
+    }
+    el.innerHTML = timeStr;
+  }
+
+  return { init };
+})();
+
 // BOOT
 // ============================================================
 document.addEventListener('DOMContentLoaded', App.init);

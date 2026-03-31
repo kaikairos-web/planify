@@ -1,30 +1,34 @@
 ﻿/* ============================================================
    CSS VARIABLES & RESET
    ============================================================ */
+
+/* --- DARK MODE (default) --- */
 :root {
-  --bg: #0f0f13;
-  --surface: #17171f;
-  --surface2: #1e1e2a;
-  --surface3: #252533;
-  --border: rgba(255,255,255,0.07);
-  --text: #f0eff6;
-  --text-muted: #7b7a8e;
-  --text-dim: #4a4a5e;
-  --accent: #7c6af7;
-  --accent-soft: rgba(124,106,247,0.15);
-  --accent-glow: rgba(124,106,247,0.3);
-  --duty: #4a90e2;
-  --duty-soft: rgba(74,144,226,0.15);
-  --birthday: #f472b6;
-  --birthday-soft: rgba(244,114,182,0.15);
-  --event: #34d399;
-  --event-soft: rgba(52,211,153,0.15);
-  --reminder: #fbbf24;
-  --reminder-soft: rgba(251,191,36,0.15);
-  --task: #a78bfa;
-  --task-soft: rgba(167,139,250,0.15);
-  --danger: #f87171;
-  --danger-soft: rgba(248,113,113,0.15);
+  --bg: rgba(0,10,20,0.92);
+  --surface: rgba(0,20,40,0.75);
+  --surface2: rgba(0,30,55,0.7);
+  --surface3: rgba(0,40,70,0.65);
+  --border: rgba(0,200,255,0.15);
+  --body-bg: #000d1a;
+  --text: #e0f7ff;
+  --text-muted: #6ab8d4;
+  --text-dim: #2a6a80;
+  --accent: #00d4ff;
+  --accent-soft: rgba(0,212,255,0.12);
+  --accent-glow: rgba(0,212,255,0.35);
+  --accent-on: #001a2e;
+  --duty: #00aaff;
+  --duty-soft: rgba(0,170,255,0.12);
+  --birthday: #ff6ef7;
+  --birthday-soft: rgba(255,110,247,0.12);
+  --event: #00ffcc;
+  --event-soft: rgba(0,255,204,0.12);
+  --reminder: #ffe066;
+  --reminder-soft: rgba(255,224,102,0.12);
+  --task: #7eb8ff;
+  --task-soft: rgba(126,184,255,0.12);
+  --danger: #ff5f7e;
+  --danger-soft: rgba(255,95,126,0.12);
   --radius: 14px;
   --radius-sm: 8px;
   --radius-lg: 20px;
@@ -35,13 +39,58 @@
   --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
   --nav-h: 64px;
   --header-h: 60px;
+  --app-bg: linear-gradient(160deg, rgba(0,20,50,0.97) 0%, rgba(0,8,20,0.99) 100%);
+  --app-glow1: rgba(0,180,255,0.12);
+  --app-glow2: rgba(0,100,255,0.08);
+  --header-bg: rgba(0,20,45,0.8);
+  --header-border: rgba(0,200,255,0.12);
+  --desktop-bg: #000a14;
+  --desktop-shadow: 0 0 80px rgba(0,212,255,0.2), 0 0 0 1px rgba(0,212,255,0.15);
+}
+
+/* --- LIGHT MODE --- */
+[data-theme="light"] {
+  --bg: #f0f8ff;
+  --surface: #ffffff;
+  --surface2: #e8f4fd;
+  --surface3: #d0eaf8;
+  --border: rgba(0,150,200,0.18);
+  --body-bg: #ddf0fb;
+  --text: #0a2a3a;
+  --text-muted: #3a7a9a;
+  --text-dim: #8ab8cc;
+  --accent: #0099cc;
+  --accent-soft: rgba(0,153,204,0.12);
+  --accent-glow: rgba(0,153,204,0.3);
+  --accent-on: #ffffff;
+  --duty: #0077cc;
+  --duty-soft: rgba(0,119,204,0.1);
+  --birthday: #cc44bb;
+  --birthday-soft: rgba(204,68,187,0.1);
+  --event: #00aa88;
+  --event-soft: rgba(0,170,136,0.1);
+  --reminder: #cc8800;
+  --reminder-soft: rgba(204,136,0,0.1);
+  --task: #5577cc;
+  --task-soft: rgba(85,119,204,0.1);
+  --danger: #cc3355;
+  --danger-soft: rgba(204,51,85,0.1);
+  --shadow: 0 8px 32px rgba(0,100,160,0.12);
+  --shadow-sm: 0 2px 12px rgba(0,100,160,0.08);
+  --app-bg: linear-gradient(160deg, #e8f6ff 0%, #f5fbff 100%);
+  --app-glow1: rgba(0,150,220,0.06);
+  --app-glow2: rgba(0,100,180,0.04);
+  --header-bg: rgba(255,255,255,0.9);
+  --header-border: rgba(0,150,200,0.15);
+  --desktop-bg: #c8e8f8;
+  --desktop-shadow: 0 0 80px rgba(0,153,204,0.15), 0 0 0 1px rgba(0,153,204,0.2);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
-  background: var(--bg);
+  background: var(--body-bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 15px;
@@ -69,14 +118,32 @@ html, body {
   max-width: 430px;
   margin: 0 auto;
   position: relative;
-  background: var(--bg);
+  background: var(--app-bg);
   overflow: hidden;
+}
+#app::before {
+  content: '';
+  position: absolute;
+  top: -120px; left: -80px;
+  width: 340px; height: 340px;
+  background: radial-gradient(circle, var(--app-glow1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+#app::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; right: -60px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, var(--app-glow2) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Desktop centering */
 @media (min-width: 768px) {
-  body { background: #08080b; display: flex; align-items: center; justify-content: center; }
-  #app { box-shadow: 0 0 80px rgba(124,106,247,0.15), 0 0 0 1px var(--border); border-radius: 32px; height: 90vh; max-height: 860px; }
+  body { background: var(--desktop-bg); display: flex; align-items: center; justify-content: center; }
+  #app { box-shadow: var(--desktop-shadow); border-radius: 32px; height: 90vh; max-height: 860px; backdrop-filter: blur(20px); }
 }
 
 /* ============================================================
@@ -87,8 +154,9 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--header-bg);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--header-border);
   height: var(--header-h);
   flex-shrink: 0;
   position: relative;
@@ -173,7 +241,7 @@ html, body {
   width: 44px; height: 44px;
   border-radius: 14px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   font-size: 22px;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 4px;
@@ -258,12 +326,14 @@ html, body {
   line-height: 1;
 }
 .cal-day.today .cal-day-num {
-  background: var(--accent);
-  color: #fff;
+  background: transparent;
+  color: var(--accent);
   width: 26px; height: 26px;
   border-radius: 50%;
+  border: 2px solid var(--accent);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 .cal-day.selected { background: var(--accent-soft); }
 .cal-day.selected .cal-day-num { color: var(--accent); font-weight: 600; }
@@ -499,7 +569,7 @@ html, body {
   font-family: var(--font);
 }
 .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
-.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
 .search-results { display: flex; flex-direction: column; gap: 8px; }
 .no-results { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 14px; }
 
@@ -723,7 +793,7 @@ html, body {
   cursor: pointer;
   transition: var(--transition);
 }
-.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 16px var(--accent-glow); }
+.btn-primary { background: var(--accent); color: var(--accent-on); box-shadow: 0 4px 16px var(--accent-glow); }
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px var(--accent-glow); }
 .btn-secondary { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 .btn-secondary:hover { background: var(--surface3); color: var(--text); }
@@ -756,7 +826,7 @@ html, body {
   align-items: flex-start;
   margin-bottom: 14px;
 }
-.event-detail-row-icon { font-size: 16px; margin-top: 1px; color: var(--text-muted); width: 20px; flex-shrink: 0; }
+.event-detail-row-icon { font-size: 16px; margin-top: 1px; color: var(--text-muted); width: 0; flex-shrink: 0; display: none; }
 .event-detail-row-content { }
 .event-detail-row-label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
 .event-detail-row-value { font-size: 14px; color: var(--text); }
@@ -902,3 +972,133 @@ html, body {
   animation: loadFill 1.2s ease forwards;
 }
 @keyframes loadFill { from { width: 0; } to { width: 100%; } }
+
+
+/* ============================================================
+   WEATHER WIDGET
+   ============================================================ */
+.weather-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+.weather-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%);
+  pointer-events: none;
+}
+.weather-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+  width: 100%;
+  text-align: center;
+}
+.weather-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+.weather-left { flex: 1; }
+.weather-temp {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.weather-desc {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  text-transform: capitalize;
+  margin-bottom: 2px;
+}
+.weather-loc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.weather-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.weather-icon {
+  font-size: 38px;
+  line-height: 1;
+}
+.weather-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+.weather-detail-item {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.weather-detail-item span:last-child {
+  color: var(--text);
+  font-weight: 500;
+}
+.weather-error {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.weather-retry {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: var(--transition);
+}
+.weather-retry:hover { background: var(--accent); color: var(--accent-on); }
+
+/* ============================================================
+   LIVE CLOCK
+   ============================================================ */
+.live-clock {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-top: 6px;
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+.clock-sec {
+  font-size: 26px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.clock-ampm {
+  font-size: 16px;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 1px;
+}

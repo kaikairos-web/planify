@@ -1,0 +1,328 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Planify  Smart Scheduler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!-- Loader -->
+<div class="loader-overlay" id="loader">
+  <div class="loader-logo">Plan<span>ify</span></div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- App Shell -->
+<div id="app">
+
+  <!-- Header -->
+  <div id="app-header">
+    <div class="header-logo">Plan<span>ify</span></div>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-today-jump" title="Go to today">Today</button>
+      <button class="icon-btn" id="btn-notif" title="Notifications">Notif</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content">
+
+    <!-- CALENDAR VIEW -->
+    <div id="view-calendar" class="view active">
+      <div class="calendar-header">
+        <div class="cal-month-title" id="cal-month-label">Jan <span>2025</span></div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="cal-prev"></button>
+          <button class="cal-nav-btn" id="cal-next"></button>
+        </div>
+      </div>
+      <div class="cal-weekdays" id="cal-weekdays"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--duty)"></div> Duty</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--birthday)"></div> Birthday</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--event)"></div> Event</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--reminder)"></div> Reminder</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--task)"></div> Task</div>
+      </div>
+      <div class="day-events-panel">
+        <div class="dep-header">
+          <div class="dep-title" id="dep-title">Select a date</div>
+          <div class="dep-date" id="dep-date"></div>
+        </div>
+        <div class="dep-list" id="dep-list">
+          <div class="dep-empty">Tap a date to view schedules</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY VIEW -->
+    <div id="view-today" class="view">
+      <div class="today-greeting">
+        <div class="greeting-sub" id="greeting-time-label">Good morning</div>
+        <div class="greeting-main" id="greeting-main">Today's Schedule</div>
+        <div class="greeting-date" id="greeting-date"></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="stat-today" style="color:var(--accent)">0</div><div class="stat-label">Today</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-upcoming" style="color:var(--event)">0</div><div class="stat-label">Upcoming</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-done" style="color:var(--reminder)">0</div><div class="stat-label">Done</div></div>
+      </div>
+      <div class="section-title">TODAY'S EVENTS</div>
+      <div id="today-events-list" class="upcoming-list"></div>
+      <div style="margin-top:20px;" class="section-title">UPCOMING</div>
+      <div id="upcoming-events-list" class="upcoming-list"></div>
+    </div>
+
+    <!-- SEARCH VIEW -->
+    <div id="view-search" class="view">
+      <div class="search-box">
+        <span class="search-icon"></span>
+        <input type="text" class="search-input" id="search-input" placeholder="Search events, tasks">
+      </div>
+      <div class="filter-row" id="filter-row">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="Duty">Duty</button>
+        <button class="filter-chip" data-filter="Birthday">Birthday</button>
+        <button class="filter-chip" data-filter="Event">Event</button>
+        <button class="filter-chip" data-filter="Reminder">Reminder</button>
+        <button class="filter-chip" data-filter="Task">Task</button>
+        <button class="filter-chip" data-filter="upcoming">Upcoming</button>
+        <button class="filter-chip" data-filter="past">Past</button>
+      </div>
+      <div id="search-results" class="search-results">
+        <div class="empty-state"><div class="empty-icon"></div><div class="empty-title">Find your schedules</div><div class="empty-sub">Search by title or filter by category</div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="view">
+      <div class="settings-section">
+        <div class="settings-section-title">Notifications</div>
+        <div class="settings-list">
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--reminder-soft)">N</div>
+              <div><div class="settings-item-title">Enable Notifications</div><div class="settings-item-sub">In-app alarm alerts</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="setting-notif" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--accent-soft)">V</div>
+              <div><div class="settings-item-title">Vibration</div><div class="settings-item-sub">Vibrate on alarm</div></div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="setting-vibrate" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--event-soft)">S</div>
+              <div><div class="settings-item-title">Alarm Sound</div><div class="settings-item-sub">Select alert sound</div></div>
+            </div>
+            <select class="settings-select" id="setting-sound">
+              <option value="bell">Bell</option>
+              <option value="chime">Chime</option>
+              <option value="beep">Beep</option>
+              <option value="none">Silent</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Display</div>
+        <div class="settings-list">
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--duty-soft)">T</div>
+              <div><div class="settings-item-title">Time Format</div><div class="settings-item-sub">12-hour or 24-hour</div></div>
+            </div>
+            <select class="settings-select" id="setting-timeformat">
+              <option value="12">12-hour</option>
+              <option value="24">24-hour</option>
+            </select>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--birthday-soft)">W</div>
+              <div><div class="settings-item-title">Week Starts On</div><div class="settings-item-sub">First day of week</div></div>
+            </div>
+            <select class="settings-select" id="setting-weekstart">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Data</div>
+        <div class="settings-list">
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--event-soft)">S</div>
+              <div><div class="settings-item-title">Export Data</div><div class="settings-item-sub">Download as JSON backup</div></div>
+            </div>
+            <button class="btn btn-secondary" style="flex:0;padding:6px 14px;font-size:12px" id="btn-export">Export</button>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--accent-soft)">V</div>
+              <div><div class="settings-item-title">Import Data</div><div class="settings-item-sub">Restore from JSON backup</div></div>
+            </div>
+            <button class="btn btn-secondary" style="flex:0;padding:6px 14px;font-size:12px" id="btn-import">Import</button>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <div class="settings-item-icon" style="background:var(--danger-soft)">X</div>
+              <div><div class="settings-item-title">Clear All Data</div><div class="settings-item-sub">Delete all schedules</div></div>
+            </div>
+            <button class="btn btn-danger" style="flex:0;padding:6px 14px;font-size:12px" id="btn-clear-all">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:20px 0;color:var(--text-dim);font-size:12px;">
+        Planify v1.0  Works 100% Offline<br>Built with  for productivity
+      </div>
+    </div>
+
+  </div><!-- end main-content -->
+
+  <!-- Bottom Navigation -->
+  <div id="bottom-nav">
+    <button class="nav-item active" data-view="calendar"><span class="nav-icon">Cal</span>
+      <span>Calendar</span>
+    </button>
+    <button class="nav-item" data-view="today"><span class="nav-icon">Day</span>
+      <span>Today</span>
+    </button>
+    <button class="nav-item" data-view="add" id="nav-add-btn">
+      <div class="nav-add">+</div>
+      <span>Add</span>
+    </button>
+    <button class="nav-item" data-view="search"><span class="nav-icon">Srch</span>
+      <span>Search</span>
+    </button>
+    <button class="nav-item" data-view="settings"><span class="nav-icon">Set</span>
+      <span>Settings</span>
+    </button>
+  </div>
+
+</div><!-- end app -->
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- ADD/EDIT EVENT MODAL -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-event-title">New Schedule</div>
+      <button class="modal-close" id="modal-event-close">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="form-event-id">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" class="form-input" id="form-title" placeholder="e.g. Team Meeting, Birthday">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <div class="cat-selector" id="cat-selector">
+          <button class="cat-chip selected" data-cat="Event"> Event</button>
+          <button class="cat-chip" data-cat="Duty"> Duty</button>
+          <button class="cat-chip" data-cat="Birthday"> Birthday</button>
+          <button class="cat-chip" data-cat="Reminder"> Reminder</button>
+          <button class="cat-chip" data-cat="Task"> Task</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="form-desc" placeholder="Optional details"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date *</label>
+        <input type="date" class="form-input" id="form-date">
+      </div>
+      <div class="form-row form-group">
+        <div>
+          <label class="form-label">Start Time</label>
+          <input type="time" class="form-input" id="form-start">
+        </div>
+        <div>
+          <label class="form-label">End Time</label>
+          <input type="time" class="form-input" id="form-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Repeat</label>
+        <select class="form-select" id="form-repeat">
+          <option value="none">No Repeat</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="yearly">Yearly (e.g. Birthdays)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-toggle-row">
+          <span class="form-toggle-label"> Enable Alarm</span>
+          <label class="toggle"><input type="checkbox" id="form-alarm"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+      <div class="form-group" id="reminder-before-group" style="display:none">
+        <label class="form-label">Remind me before</label>
+        <select class="form-select" id="form-reminder-before">
+          <option value="0">At event time</option>
+          <option value="5">5 minutes before</option>
+          <option value="10" selected>10 minutes before</option>
+          <option value="15">15 minutes before</option>
+          <option value="30">30 minutes before</option>
+          <option value="60">1 hour before</option>
+          <option value="1440">1 day before</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" id="btn-form-cancel">Cancel</button>
+        <button class="btn btn-danger" id="btn-form-delete" style="display:none">Delete</button>
+        <button class="btn btn-primary" id="btn-form-save">Save Event</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT DETAIL MODAL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="event-detail-header" id="detail-header"></div>
+    <div class="event-detail-body" id="detail-body"></div>
+    <div class="event-detail-actions">
+      <button class="btn btn-secondary" id="detail-done-btn"> Mark Done</button>
+      <button class="btn btn-secondary" id="detail-edit-btn"> Edit</button>
+      <button class="btn btn-danger" id="detail-delete-btn"> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-dialog">
+    <div class="confirm-icon" id="confirm-icon"></div>
+    <div class="confirm-title" id="confirm-title">Are you sure?</div>
+    <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="import-file" accept=".json" style="display:none">
+
+
+<script src="js/app.js"></script>
+</body>
+</html>

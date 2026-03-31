@@ -254,9 +254,9 @@ const ToastModule = (() => {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-      <span class="toast-icon">${type === 'alarm' ? '' : type === 'success' ? '' : type === 'error' ? '' : ''}</span>
+      <span class="toast-icon">${type === 'alarm' ? '[!]' : type === 'success' ? '[ok]' : type === 'error' ? '[x]' : '[i]'}</span>
       <div class="toast-msg">${msg}${sub ? `<br><small style="color:var(--text-muted)">${sub}</small>` : ''}</div>
-      <span class="toast-close" onclick="this.parentElement.remove()"></span>
+      <span class="toast-close" onclick="this.parentElement.remove()">&#10005;</span>
     `;
     container.appendChild(toast);
     if (duration > 0) setTimeout(() => toast.remove(), duration);
@@ -412,6 +412,8 @@ const TodayView = (() => {
     const hour = now.getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     document.getElementById('greeting-time-label').textContent = greeting;
+    const greetingMain = document.getElementById('greeting-main');
+    if (greetingMain) greetingMain.textContent = ${greeting}, here's your day;
 
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -688,7 +690,7 @@ const DetailModal = (() => {
     const event = EventModel.getAll().find(e => e.id === id);
     if (!event) return;
 
-    const icons = { Event: '', Duty: '', Birthday: '', Reminder: '', Task: '' };
+    const icons = { Event: 'Evt', Duty: 'Dty', Birthday: 'Bday', Reminder: 'Rem', Task: 'Task' };
     const icon = icons[event.category] || '';
 
     document.getElementById('detail-header').innerHTML = `
@@ -705,7 +707,7 @@ const DetailModal = (() => {
 
     let bodyHtml = `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon"></div>
+        <div class="event-detail-row-icon">Date</div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Date</div>
           <div class="event-detail-row-value">${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</div>
@@ -713,7 +715,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.startTime) bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon"></div>
+        <div class="event-detail-row-icon">Time</div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Time</div>
           <div class="event-detail-row-value">${formatTimeRange(event.startTime, event.endTime)}</div>
@@ -721,7 +723,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.description) bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon"></div>
+        <div class="event-detail-row-icon">Info</div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Description</div>
           <div class="event-detail-row-value">${escHtml(event.description)}</div>
@@ -729,7 +731,7 @@ const DetailModal = (() => {
       </div>`;
     if (event.repeat !== 'none') bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon"></div>
+        <div class="event-detail-row-icon">Rep.</div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Repeat</div>
           <div class="event-detail-row-value">${event.repeat.charAt(0).toUpperCase() + event.repeat.slice(1)}</div>
@@ -737,7 +739,7 @@ const DetailModal = (() => {
       </div>`;
     bodyHtml += `
       <div class="event-detail-row">
-        <div class="event-detail-row-icon"></div>
+        <div class="event-detail-row-icon">Alrm</div>
         <div class="event-detail-row-content">
           <div class="event-detail-row-label">Alarm</div>
           <div class="event-detail-row-value">${event.alarm ? `Enabled  ${event.reminderBefore > 0 ? event.reminderBefore + ' min before' : 'At event time'}` : 'Disabled'}</div>
@@ -745,7 +747,7 @@ const DetailModal = (() => {
       </div>`;
 
     document.getElementById('detail-body').innerHTML = bodyHtml;
-    document.getElementById('detail-done-btn').textContent = event.done ? ' Unmark Done' : ' Mark Done';
+    document.getElementById('detail-done-btn').textContent = event.done ? 'Unmark Done' : 'Mark Done';
     document.getElementById('modal-detail').classList.add('open');
   }
 
@@ -795,7 +797,7 @@ const SettingsModule = (() => {
       e.target.value = '';
     });
     document.getElementById('btn-clear-all').addEventListener('click', () => {
-      ConfirmDialog.show('Clear All Data', 'This will delete ALL your schedules permanently. This cannot be undone!', '', () => {
+      ConfirmDialog.show('Clear All Data', 'This will delete ALL your schedules permanently. This cannot be undone!', '!', () => {
         Storage.clearAll();
         AlarmModule.cancelAll();
         App.refreshAll();

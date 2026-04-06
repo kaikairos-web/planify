@@ -50,6 +50,14 @@
 
 /* --- LIGHT MODE --- */
 [data-theme="light"] {
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+  --font: 'DM Sans', sans-serif;
+  --font-display: 'Fraunces', serif;
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  --nav-h: 64px;
+  --header-h: 60px;
   --bg: #f0f8ff;
   --surface: #ffffff;
   --surface2: #e8f4fd;

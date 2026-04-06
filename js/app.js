@@ -28,7 +28,7 @@ const Storage = (() => {
   }
 
   function saveSettings(settings) {
-    localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+    try { localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings)); } catch(e) {}
   }
 
   function exportData() {
@@ -43,13 +43,18 @@ const Storage = (() => {
 
   function importData(jsonStr) {
     const data = JSON.parse(jsonStr);
-    if (data.events && Array.isArray(data.events)) saveEvents(data.events);
-    if (data.settings) saveSettings(data.settings);
+    if (!data || typeof data !== 'object') throw new Error('Invalid format');
+    if (data.events && Array.isArray(data.events)) {
+      const valid = data.events.filter(e => e.id && e.title && e.date);
+      saveEvents(valid);
+    }
+    if (data.settings && typeof data.settings === 'object') saveSettings(data.settings);
     return data;
   }
 
   function clearAll() {
-    localStorage.removeItem(KEY_EVENTS);
+    try { localStorage.removeItem(KEY_EVENTS); } catch(e) {}
+    try { localStorage.removeItem(KEY_SETTINGS); } catch(e) {}
   }
 
   return { getEvents, saveEvents, getSettings, saveSettings, exportData, importData, clearAll };
@@ -141,8 +146,15 @@ const EventModel = (() => {
 
   function getUpcoming(limit = 10) {
     const today = getTodayStr();
-    return Storage.getEvents()
-      .filter(e => e.date > today && e.repeat === 'none')
+    const todayDate = new Date(today + 'T00:00:00');
+    const all = Storage.getEvents();
+    // Include future one-time events + active repeat events
+    const upcoming = all.filter(e => {
+      if (e.done) return false;
+      if (e.repeat !== 'none') return true; // repeating always upcoming
+      return e.date > today;
+    });
+    return upcoming
       .sort((a,b) => a.date.localeCompare(b.date) || (a.startTime||'').localeCompare(b.startTime||''))
       .slice(0, limit);
   }
@@ -259,7 +271,7 @@ const AlarmModule = (() => {
     const events = EventModel.getAll();
     const today = EventModel.getTodayStr();
     events.forEach(e => {
-      if (e.date === today || e.repeat !== 'none') scheduleAlarm(e);
+      if (!e.done && (e.date === today || e.repeat !== 'none')) scheduleAlarm(e);
     });
   }
 
@@ -403,11 +415,11 @@ const CalendarUI = (() => {
         <div class="dep-cat-dot cat-${e.category.toLowerCase()}"></div>
         <div class="dep-item-info">
           <div class="dep-item-title">${escHtml(e.title)}</div>
-          <div class="dep-item-time">${formatTimeRange(e.startTime, e.endTime)}${e.alarm?'  ':''}</div>
+          <div class="dep-item-time">${formatTimeRange(e.startTime, e.endTime)}${e.alarm?' [!]':''}</div>
         </div>
         <div class="dep-item-actions">
-          <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit"></button>
-          <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete"></button>
+          <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit">&#9998;</button>
+          <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete">&#10005;</button>
         </div>
       </div>`).join('');
   }
@@ -494,8 +506,8 @@ const TodayView = (() => {
             </div>
           </div>
           <div class="event-card-actions">
-            <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit"></button>
-            <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete"></button>
+            <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit">&#9998;</button>
+            <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete">&#10005;</button>
           </div>
         </div>`;
     }).join('');
@@ -561,15 +573,24 @@ const SearchModule = (() => {
             </div>
           </div>
           <div class="event-card-actions">
-            <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit"></button>
-            <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete"></button>
+            <button class="dep-action-btn edit" onclick="event.stopPropagation();EventFormModal.open('${e.id}')" title="Edit">&#9998;</button>
+            <button class="dep-action-btn" onclick="event.stopPropagation();App.deleteEvent('${e.id}')" title="Delete">&#10005;</button>
           </div>
         </div>`;
     }).join('');
   }
 
   function refresh() { render(); }
-  return { init, refresh };
+  function clear() {
+    currentQuery = '';
+    currentFilter = 'all';
+    const input = document.getElementById('search-input');
+    if (input) input.value = '';
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    const allChip = document.querySelector('.filter-chip[data-filter="all"]');
+    if (allChip) allChip.classList.add('active');
+  }
+  return { init, refresh, clear };
 })();
 
 // ============================================================
@@ -683,6 +704,17 @@ const EventFormModal = (() => {
       repeat: document.getElementById('form-repeat').value
     };
 
+    // Conflict detection
+    if (data.startTime) {
+      const conflicts = EventModel.getByDate(data.date).filter(e =>
+        e.id !== editingId && e.startTime === data.startTime && !e.done
+      );
+      if (conflicts.length > 0) {
+        ToastModule.show('Time conflict', conflicts[0].title + ' is at the same time', 'error', 4000);
+        return;
+      }
+    }
+
     if (editingId) {
       AlarmModule.cancelAlarm(editingId);
       const updated = EventModel.update(editingId, data);
@@ -795,8 +827,15 @@ const DetailModal = (() => {
     if (!currentId) return;
     const event = EventModel.getAll().find(e => e.id === currentId);
     if (!event) return;
-    EventModel.update(currentId, { done: !event.done });
-    ToastModule.show(event.done ? 'Marked as pending' : 'Marked as done', '', 'success');
+    const nowDone = !event.done;
+    EventModel.update(currentId, { done: nowDone });
+    if (nowDone) {
+      AlarmModule.cancelAlarm(currentId);
+    } else {
+      AlarmModule.scheduleAlarm({ ...event, done: false });
+    }
+    App.refreshAll();
+    ToastModule.show(nowDone ? 'Marked as done' : 'Marked as pending', '', 'success');
     close();
     App.refreshAll();
   }
@@ -927,7 +966,7 @@ const Navigation = (() => {
 
     // Refresh view on switch
     if (view === 'today') TodayView.render();
-    if (view === 'search') SearchModule.refresh();
+    if (view === 'search') { SearchModule.clear(); SearchModule.refresh(); }
   }
 
   return { init, switchTo };
@@ -1095,16 +1134,26 @@ const WeatherModule = (() => {
     71:'🌨️',73:'❄️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',99:'⛈️'
   };
 
+  let _refreshTimer = null;
+
   function load() {
     document.getElementById('weather-loading').style.display = 'block';
     document.getElementById('weather-content').style.display = 'none';
     document.getElementById('weather-error').style.display = 'none';
+    if (_refreshTimer) clearInterval(_refreshTimer);
+    _refreshTimer = setInterval(load, 30 * 60 * 1000); // refresh every 30 min
 
+    if (!navigator.onLine) {
+      document.getElementById('weather-loading').style.display = 'none';
+      document.getElementById('weather-error').style.display = 'flex';
+      document.getElementById('weather-error').querySelector('span').textContent = 'No internet connection';
+      return;
+    }
     if (!navigator.geolocation) { showError(); return; }
 
     navigator.geolocation.getCurrentPosition(
       pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-      () => fetchWeather(40.7128, -74.0060) // fallback: New York
+      () => { fetchWeather(40.7128, -74.0060); document.getElementById('weather-loc').textContent = 'New York (location unavailable)'; }
     , { timeout: 8000 });
   }
 
